@@ -1,32 +1,30 @@
 module Day1 (main) where
 
 import Misc (check)
-import Data.List (sort)
-import Par4 (parse,Par,separated,nl,int,ws1)
+import Par4 (parse,Par,many,alts,lit)
 
 main :: IO ()
 main = do
-  sam <- readFile "input/day1.sample"
-  inp <- readFile "input/day1.input"
-  print ("day1, part1 (sample)", check 11 $ part1 sam)
-  print ("day1, part1", check 1889772 $ part1 inp)
-  print ("day1, part2 (sample)", check 31 $ part2 sam)
-  print ("day1, part2", check 23228917 $ part2 inp)
+  inp <- parse gram <$> readFile "input/day1.input"
+  print ("day1, part1", check 138 $ part1 inp)
+  print ("day1, part2", check 1771 $ part2 inp)
 
-gram :: Par [(Int,Int)]
-gram = separated nl $ do
-  i <- int
-  ws1
-  j <- int
-  pure (i,j)
+data Paren = Open | Close
 
-part1 :: String -> Int
-part1 s = do
-  let (ys,zs) = unzip (parse gram s)
-  sum [ abs (y-z) | (y,z) <- zip (sort ys) (sort zs) ]
+gram :: Par [Paren]
+gram = many paren
+  where paren = alts [ do lit '('; pure Open
+                     , do lit ')'; pure Close
+                     ]
 
-part2 :: String -> Int
-part2 s = do
-  let (ys,zs) = unzip (parse gram s)
-  sum [ y * length [ () | z <- zs, z == y ]
-      | y <- ys ]
+part1 :: [Paren] -> Int
+part1 xs = sum [ case x of Open -> 1; Close -> -1 | x <- xs ]
+
+part2 :: [Paren] -> Int
+part2 xs = loop 1 0 xs
+  where
+    loop :: Int -> Int -> [Paren] -> Int
+    loop p h = \case
+      [] -> undefined
+      Open:xs -> loop (p+1) (h+1) xs
+      Close:xs -> if h == 0 then p else loop (p+1) (h-1) xs
