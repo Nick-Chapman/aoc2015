@@ -21,4 +21,8 @@ default-extensions:
   echo GADTs >>default-extensions
 
 pkgdb:
-  echo /home/nic/.stack/snapshots/x86_64-linux/f1ef071755020b301d59dde216bf969c055bde96c3814b3671c85a77cad78563/9.8.4/pkgdb >pkgdb
+  echo /home/nic/.stack/snapshots/x86_64-linux/0c0e09a39c717a2ea362c88b471e2ca3bfed98555f446ae62de384c509723563/9.8.4/pkgdb > pkgdb
+
+packages:
+  touch packages
+  echo MissingH >>packages
