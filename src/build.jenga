@@ -14,7 +14,7 @@ ghc-options:
   echo -Werror >>ghc-options
   echo -Wall >>ghc-options
   echo -Wno-name-shadowing >>ghc-options
-  echo -O2 >>ghc-options
+  #echo -O2 >>ghc-options
 
 default-extensions:
   echo LambdaCase >>default-extensions
