@@ -47,10 +47,10 @@ splitW32 (X w) =
   , fromIntegral ((w `shiftR` 24) `mod` 256)
   )
 
-instance Show W32 where
-  show x = do
-    let (a,b,c,d) = splitW32 x
-    printf "%02x%02x%02x%02x" a b c d -- little endian
+showLittleEndian :: W32 -> String
+showLittleEndian x = do
+  let (a,b,c,d) = splitW32 x
+  printf "%02x%02x%02x%02x" a b c d
 
 kTable :: [W32]
 kTable =
@@ -92,17 +92,14 @@ sTable =
   , 6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21 ]
 
 data State = State (W32,W32,W32,W32)
-instance Show State where show (State (a,b,c,d)) = show (a,b,c,d)
 
 state0 :: State
 state0 = State (0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476)
 
 data W512 = SixteenWords [W32] -- an input package of 16x 32-bit words
 
-instance Show W512 where show (SixteenWords xs) = show xs
-
 makeIP :: [W32] -> W512
-makeIP xs = myassert "makeIP" (length xs == 16) $ SixteenWords xs
+makeIP xs = myassert (show("makeIP",length xs)) (length xs == 16) $ SixteenWords xs
 
 pick :: W512 -> Int -> W32
 pick (SixteenWords xs) i = xs !! (i `mod` 16)
@@ -122,21 +119,35 @@ chunk4 = \case
   a:b:c:d:xs -> makeW32 (a,b,c,d) : chunk4 xs
   _ -> error "chunk4"
 
--- TODO: make this work for longer messages
-padSingleIP :: [Byte] -> W512
-padSingleIP bs = do
-  let len = length bs
-  if len > 55 then error "too big" else do
-    let size = len * 8 -- size in bits
-    let sizeByteL = mkByte (size `mod` 256)
-    let sizeByteH = mkByte ((size `shiftR` 8) `mod` 256)
-    let sizeWordL = makeW32 (sizeByteL,sizeByteH,0,0)
-    let sizeWordH = makeW32 (0,0,0,0)
-    let bs' = bs ++ [mkByte 128] ++ replicate (55 - len) byte0
-    myassert (show ("b56",length bs')) (length bs' == 56) $
-      makeIP (chunk4 bs' ++ [sizeWordL,sizeWordH])
+padInputIntoPackages :: [Byte] -> [W512]
+padInputIntoPackages bs = step bs len
   where
     byte0 = mkByte 0
+    len = length bs
+    (sizeWordL,sizeWordH) = makeFinalSizeWords len
+    step :: [Byte] -> Int -> [W512]
+    step bs len =
+      if len >= 64 then do
+        let (bsH,bsT) = splitAt 64 bs
+        makeIP (chunk4 bsH) : step bsT (len-64)
+      else if len > 55 then do
+        let bs1 = bs ++ [mkByte 128] ++ replicate (63-len) byte0
+        let bs2 = replicate 56 byte0
+        [ makeIP (chunk4 bs1),
+          makeIP (chunk4 bs2 ++ [sizeWordL,sizeWordH]) ]
+      else do
+        let bs1 = bs ++ [mkByte 128] ++ replicate (55 - len) byte0
+        [ makeIP (chunk4 bs1 ++ [sizeWordL,sizeWordH])]
+
+makeFinalSizeWords :: Int -> (W32,W32)
+makeFinalSizeWords len = do
+  let size = len * 8 -- size in bits
+  let sizeByteL = mkByte (size `mod` 256)
+  let sizeByteH = mkByte ((size `shiftR` 8) `mod` 256)
+  let sizeWordL = makeW32 (sizeByteL,sizeByteH,0,0)
+  let sizeWordH = makeW32 (0,0,0,0)
+  (sizeWordL,sizeWordH)
+
 
 data Quad = Quad (W32,Func,W32,Int)
 
@@ -168,13 +179,19 @@ sixtyFourSteps state inputPackage =
         loop s' qs
 
 prettyPrint :: State -> String
-prettyPrint (State (a,b,c,d)) = printf "%s%s%s%s" (show a) (show b) (show c) (show d)
+prettyPrint (State (a,b,c,d)) = printf "%s%s%s%s" (pp a) (pp b) (pp c) (pp d)
+  where pp = showLittleEndian
 
 md5_mine :: String -> String
 md5_mine string = do
-  let ip = padSingleIP (map byteOfChar string)
-  let finalState = sixtyFourSteps state0 ip
+  let ips = padInputIntoPackages (map byteOfChar string)
+  let finalState = loop state0 ips
   prettyPrint finalState
+  where
+    loop :: State -> [W512] -> State
+    loop s = \case
+      [] -> s
+      ip:ips -> loop (sixtyFourSteps s ip) ips
 
 md5_reference :: String -> String
 md5_reference s = MD5_reference.md5s (MD5_reference.Str s)

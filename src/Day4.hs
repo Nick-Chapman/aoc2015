@@ -39,9 +39,13 @@ main = do
          check "c3fcd3d76192e4007dfb496cca67e13b" $
           md5 "abcdefghijklmnopqrstuvwxyz")
 
-  {-print ("md5 (spec-LONG)",
+  print ("md5 (spec-LONG-length-62)",
          check "d174ab98d277d9f5a5611c2c9f419d9f" $
-          md5 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")-}
+          md5 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+
+  print ("md5 (spec-LONG-length-80)",
+         check "57edf4a22be3c955ac49da2e2107b67a" $
+          md5 "12345678901234567890123456789012345678901234567890123456789012345678901234567890")
 
   --print ("day4, part1 (example-A)", check 609043 $ _part1 "abcdef")
   --print ("day4, part1 (example-B)", check 1048970 $ _part1 "pqrstuv")
