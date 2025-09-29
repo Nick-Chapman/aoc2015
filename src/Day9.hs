@@ -11,10 +11,10 @@ main :: IO ()
 main = do
   sam <- parse gram <$> readFile "input/day9.sam"
   inp <- parse gram <$> readFile "input/day9.input"
-  print ("day0, part1 (sample)", check 605 $ part1 sam)
-  print ("day0, part1", check 141 $ part1 inp)
-  print ("day0, part2 (sample)", check 982 $ part2 sam)
-  print ("day0, part2", check 736 $ part2 inp)
+  print ("day9, part1 (sample)", check 605 $ part1 sam)
+  print ("day9, part1", check 141 $ part1 inp)
+  print ("day9, part2 (sample)", check 982 $ part2 sam)
+  print ("day9, part2", check 736 $ part2 inp)
   where
     part1 = minimum . distances
     part2 = maximum . distances
