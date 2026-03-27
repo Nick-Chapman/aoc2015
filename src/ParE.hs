@@ -1,6 +1,6 @@
 
 -- | Earley Parser Combinators
-module ParE (Par,parse,word,key,int,ws0,ws1,sp,nl,lit,sat,char,alts,opt,separated,terminated) where
+module ParE (Par,parseN,parse1,word,key,int,ws0,ws1,sp,nl,lit,dot,sat,char,alts,opt,separated,terminated,many) where
 
 import Control.Applicative (Alternative,empty,(<|>),many,some)
 import Control.Monad (ap,liftM)
@@ -28,6 +28,7 @@ digit :: Par Int
 sp :: Par ()
 nl :: Par ()
 lit :: Char -> Par ()
+dot :: Par Char
 sat :: (Char -> Bool) -> Par Char
 char :: Par Char
 
@@ -44,6 +45,7 @@ digit = digitOfChar <$> sat Char.isDigit
 sp = lit ' '
 nl = lit '\n'
 lit x = do _ <- sat (== x); pure ()
+dot = sat (/= '\n')
 
 sat pred = do c <- Token; if pred c then return c else Fail
 char = Token
@@ -58,8 +60,17 @@ data Par a where
   Token :: Par Char
   Alt :: Par a -> Par a -> Par a
 
-parse :: Show a => Par a -> String -> a
-parse par string = runLG string $ langOfPar par
+parse1 :: Show a => Par a -> String -> a
+parse1 par string = deAmb $ parseN par string
+
+parseN :: Show a => Par a -> String -> [a]
+parseN par string = runLG string $ langOfPar par
+
+deAmb :: [a] -> a
+deAmb = \case
+  [] -> undefined
+  [x] -> x
+  xs -> error $ show ("ambiguity", length xs)
 
 withTok :: EM.Gram Char -> Par a -> EM.Gram a
 withTok tok = conv
@@ -77,13 +88,12 @@ langOfPar par = do
   tok <- EM.getToken
   return $ withTok tok par
 
-runLG :: Show a => String -> EM.Lang Char (EM.Gram a) -> a
+runLG :: Show a => String -> EM.Lang Char (EM.Gram a) -> [a]
 runLG s lang =
   case EM.parseAmb lang s of
     EM.Parsing{EM.outcome} -> case outcome of
       Left pe -> error $ prettySE pe
-      Right [a] -> a
-      Right xs -> error $ show ("ambiguity", length xs)
+      Right xs -> xs
   where
 
     _prettyPE :: EM.ParseError -> String
