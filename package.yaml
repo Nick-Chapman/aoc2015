@@ -12,6 +12,7 @@ dependencies:
 - clock
 - containers
 - MissingH
+- EarleyM
 
 default-extensions:
 - DuplicateRecordFields

@@ -2,12 +2,13 @@ module Day19 (main) where
 
 import Prelude hiding (seq)
 import Misc (check,nub)
-import Par4 (Par,parse,terminated,nl,key,word)
+import ParE (Par,parse,terminated,nl,key,word)
 import Data.List (stripPrefix)
 
 main :: IO ()
 main = do
   inp <- parse gram <$> readFile "input/day19.input"
+  print inp
   res1 <- part1 inp
   print ("day19, part1", check 518 $ res1)
 
